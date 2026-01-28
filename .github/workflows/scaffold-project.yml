@@ -192,9 +192,21 @@ jobs:
 
     - name: Create Pull Request with GitHub CLI
       run: |
+        # Vérifier que la variable est bien définie
+        echo "DEBUG: BASELINE_BRANCH from output = ${{ steps.baseline_pr.outputs.BASELINE_BRANCH }}"
+        
+        # Récupérer le nom de branche depuis l'output du step précédent
         BRANCH_NAME="${{ steps.baseline_pr.outputs.BASELINE_BRANCH }}"
         
-        # Créer la PR avec GitHub CLI
+        if [ -z "$BRANCH_NAME" ]; then
+          echo "❌ Erreur: BRANCH_NAME est vide"
+          echo "Available outputs: ${{ steps.baseline_pr.outputs }}"
+          exit 1
+        fi
+        
+        echo "🔧 Création PR pour la branche: $BRANCH_NAME"
+        
+        # Créer la PR avec GitHub CLI (sans assignee pour éviter l'erreur)
         gh pr create \
           --title "🚀 Add project baseline: $PROJECT_NAME-$ENVIRONMENT" \
           --body "## 🏗️ Nouveau projet baseline
@@ -218,8 +230,7 @@ jobs:
         /cc @platform-team" \
           --head "$BRANCH_NAME" \
           --base main \
-          --label "baseline,$ENVIRONMENT,projet-$PROJECT_NAME" \
-          --assignee younesbami
+          --label "baseline"
         
         echo "✅ Pull Request créée pour la branche: $BRANCH_NAME"
       env:
