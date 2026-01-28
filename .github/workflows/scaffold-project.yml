@@ -1,6 +1,18 @@
 name: 🚀 Scaffold New Project
 
 on:
+  push:
+    branches: 
+      - main
+      - 'feat/**'
+      - 'fix/**'
+      - 'feature/**'
+      - 'hotfix/**'
+      - 'release/**'
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: 
+      - main
   workflow_dispatch:
     inputs:
       project_name:
@@ -40,10 +52,24 @@ jobs:
       
     - name: Setup variables
       run: |
-        echo "PROJECT_NAME=${{ github.event.inputs.project_name }}" >> $GITHUB_ENV
-        echo "TEAM_NAME=${{ github.event.inputs.team_name }}" >> $GITHUB_ENV
-        echo "ENVIRONMENT=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
-        echo "DESCRIPTION=${{ github.event.inputs.description }}" >> $GITHUB_ENV
+        # Variables pour workflow_dispatch (manuel)
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "PROJECT_NAME=${{ github.event.inputs.project_name }}" >> $GITHUB_ENV
+          echo "TEAM_NAME=${{ github.event.inputs.team_name }}" >> $GITHUB_ENV
+          echo "ENVIRONMENT=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+          echo "DESCRIPTION=${{ github.event.inputs.description }}" >> $GITHUB_ENV
+          echo "MODE=manual" >> $GITHUB_ENV
+        else
+          # Variables par défaut pour push/PR automatiques
+          echo "PROJECT_NAME=auto-test" >> $GITHUB_ENV
+          echo "TEAM_NAME=platform" >> $GITHUB_ENV
+          echo "ENVIRONMENT=dev" >> $GITHUB_ENV
+          echo "DESCRIPTION=Test automatique sur ${{ github.event_name }}" >> $GITHUB_ENV
+          echo "MODE=auto" >> $GITHUB_ENV
+        fi
+        
+        echo "🔧 Mode: $([ "${{ github.event_name }}" = "workflow_dispatch" ] && echo "Manual" || echo "Auto")"
+        echo "📋 Event: ${{ github.event_name }}"
         
     - name: Generate project baseline
       run: |
@@ -175,12 +201,23 @@ jobs:
       with:
         ref: main
         
+    - name: Setup variables for manifest
+      run: |
+        # Récupérer les variables du job précédent via artifacts ou les redéfinir
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "PROJECT_NAME=${{ github.event.inputs.project_name }}" >> $GITHUB_ENV
+          echo "TEAM_NAME=${{ github.event.inputs.team_name }}" >> $GITHUB_ENV
+          echo "ENVIRONMENT=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+          echo "DESCRIPTION=${{ github.event.inputs.description }}" >> $GITHUB_ENV
+        else
+          echo "PROJECT_NAME=auto-test" >> $GITHUB_ENV
+          echo "TEAM_NAME=platform" >> $GITHUB_ENV
+          echo "ENVIRONMENT=dev" >> $GITHUB_ENV
+          echo "DESCRIPTION=Test automatique sur ${{ github.event_name }}" >> $GITHUB_ENV
+        fi
+        
     - name: Generate XProjectCluster manifest for local apply
       run: |
-        PROJECT_NAME="${{ github.event.inputs.project_name }}"
-        TEAM_NAME="${{ github.event.inputs.team_name }}"
-        ENVIRONMENT="${{ github.event.inputs.environment }}"
-        DESCRIPTION="${{ github.event.inputs.description }}"
         
         # Créer le dossier manifests pour usage local
         mkdir -p manifests-local
@@ -225,6 +262,6 @@ jobs:
     - name: Upload manifest as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: crossplane-manifest-${{ github.event.inputs.project_name }}-${{ github.event.inputs.environment }}
+        name: crossplane-manifest-${{ github.event.inputs.project_name || 'auto-test' }}-${{ github.event.inputs.environment || 'dev' }}
         path: manifests-local/
         retention-days: 30
