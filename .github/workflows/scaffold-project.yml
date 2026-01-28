@@ -37,6 +37,11 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
 env:
   PROJECT_MANIFESTS_REPO: "younesbami/project-manifests"
 
@@ -45,6 +50,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
+      issues: write
       
     steps:
     - name: Checkout repository
