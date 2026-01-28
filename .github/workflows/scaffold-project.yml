@@ -213,8 +213,7 @@ jobs:
 
         Généré automatiquement le $(date)" \
           --head "$BRANCH_NAME" \
-          --base main \
-          --label "baseline"
+          --base main
         
         echo "✅ Pull Request créée pour la branche: $BRANCH_NAME"
       env:
