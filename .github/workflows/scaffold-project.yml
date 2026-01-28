@@ -3,16 +3,14 @@ name: 🚀 Scaffold New Project
 on:
   push:
     branches: 
-      - main
       - 'feat/**'
-      - 'fix/**'
+      - 'fix/**'  
       - 'feature/**'
       - 'hotfix/**'
       - 'release/**'
-  pull_request:
-    types: [opened, synchronize, reopened]
-    branches: 
-      - main
+      - 'test/**'
+    paths-ignore:
+      - 'environments/**'  # Éviter boucle sur baseline changes
   workflow_dispatch:
     inputs:
       project_name:
