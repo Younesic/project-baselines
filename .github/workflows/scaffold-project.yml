@@ -196,33 +196,34 @@ jobs:
         
         echo "✅ Branche créée pour baseline: $BRANCH_NAME"
         
-        # Créer la PR directement dans le même step
+        # Informer l'utilisateur comment créer la PR manuellement
         echo "🔧 Création de la Pull Request..."
-        gh pr create \
-          --title "🚀 Add project baseline: $PROJECT_NAME-$ENVIRONMENT" \
-          --body "## 🏗️ Nouveau projet baseline
-
-        **Projet:** \`$PROJECT_NAME\`  
-        **Équipe:** \`$TEAM_NAME\`  
-        **Environnement:** \`$ENVIRONMENT\`
-
-        ### 📋 Contenu généré
-        - ✅ ResourceQuota avec limites standard
-        - ✅ RBAC (ServiceAccount + Role + RoleBinding)
-        - ✅ Labels standardisés pour gouvernance
-
-        ### 🎯 Validation requise
-        - [ ] Vérifier les limites ResourceQuota
-        - [ ] Valider les permissions RBAC
-        - [ ] Confirmer les labels et annotations
-
-        **Description:** $DESCRIPTION
-
-        Généré automatiquement le $(date)" \
-          --head "$BRANCH_NAME" \
-          --base main
-        
-        echo "✅ Pull Request créée pour la branche: $BRANCH_NAME"
+        echo "⚠️  Limitation GitHub Actions: Impossible de créer la PR automatiquement"
+        echo ""
+        echo "🎯 ACTIONS REQUISES:"
+        echo "1. Allez sur: https://github.com/Younesic/project-baselines/pull/new/$BRANCH_NAME"
+        echo "2. Titre suggéré: 🚀 Add project baseline: $PROJECT_NAME-$ENVIRONMENT"
+        echo "3. Description suggérée:"
+        echo ""
+        echo "## 🏗️ Nouveau projet baseline"
+        echo ""
+        echo "**Projet:** \`$PROJECT_NAME\`"
+        echo "**Équipe:** \`$TEAM_NAME\`"  
+        echo "**Environnement:** \`$ENVIRONMENT\`"
+        echo ""
+        echo "### 📋 Contenu généré"
+        echo "- ✅ ResourceQuota avec limites standard"
+        echo "- ✅ RBAC (ServiceAccount + Role + RoleBinding)"
+        echo "- ✅ Labels standardisés pour gouvernance"
+        echo ""
+        echo "### 🎯 Validation requise"
+        echo "- [ ] Vérifier les limites ResourceQuota"
+        echo "- [ ] Valider les permissions RBAC"
+        echo "- [ ] Confirmer les labels et annotations"
+        echo ""
+        echo "**Description:** $DESCRIPTION"
+        echo ""
+        echo "✅ Branche prête pour Pull Request: $BRANCH_NAME"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
