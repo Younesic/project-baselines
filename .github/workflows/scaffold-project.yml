@@ -190,37 +190,40 @@ jobs:
         echo "✅ Branche créée pour baseline: $BRANCH_NAME"
         echo "BASELINE_BRANCH=$BRANCH_NAME" >> $GITHUB_OUTPUT
 
-    - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v5
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        branch: ${{ steps.baseline_pr.outputs.BASELINE_BRANCH }}
-        title: "🚀 Add project baseline: ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}"
-        body: |
-          ## 🏗️ Nouveau projet baseline
-          
-          **Projet:** `${{ env.PROJECT_NAME }}`  
-          **Équipe:** `${{ env.TEAM_NAME }}`  
-          **Environnement:** `${{ env.ENVIRONMENT }}`
-          
-          ### 📋 Contenu généré
-          - ✅ ResourceQuota avec limites standard
-          - ✅ RBAC (ServiceAccount + Role + RoleBinding)
-          - ✅ Labels standardisés pour gouvernance
-          
-          ### 🎯 Validation requise
-          - [ ] Vérifier les limites ResourceQuota
-          - [ ] Valider les permissions RBAC
-          - [ ] Confirmer les labels et annotations
-          
-          **Description:** ${{ env.DESCRIPTION }}
-          
-          /cc @platform-team
-        labels: |
-          baseline
-          ${{ env.ENVIRONMENT }}
-          projet-${{ env.PROJECT_NAME }}
-        assignees: younesbami
+    - name: Create Pull Request with GitHub CLI
+      run: |
+        BRANCH_NAME="${{ steps.baseline_pr.outputs.BASELINE_BRANCH }}"
+        
+        # Créer la PR avec GitHub CLI
+        gh pr create \
+          --title "🚀 Add project baseline: $PROJECT_NAME-$ENVIRONMENT" \
+          --body "## 🏗️ Nouveau projet baseline
+
+        **Projet:** \`$PROJECT_NAME\`  
+        **Équipe:** \`$TEAM_NAME\`  
+        **Environnement:** \`$ENVIRONMENT\`
+
+        ### 📋 Contenu généré
+        - ✅ ResourceQuota avec limites standard
+        - ✅ RBAC (ServiceAccount + Role + RoleBinding)
+        - ✅ Labels standardisés pour gouvernance
+
+        ### 🎯 Validation requise
+        - [ ] Vérifier les limites ResourceQuota
+        - [ ] Valider les permissions RBAC
+        - [ ] Confirmer les labels et annotations
+
+        **Description:** $DESCRIPTION
+
+        /cc @platform-team" \
+          --head "$BRANCH_NAME" \
+          --base main \
+          --label "baseline,$ENVIRONMENT,projet-$PROJECT_NAME" \
+          --assignee younesbami
+        
+        echo "✅ Pull Request créée pour la branche: $BRANCH_NAME"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       id: create_pr
 
   generate-manifest:
