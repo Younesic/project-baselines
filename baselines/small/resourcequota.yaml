@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: baseline-quota
+  labels:
+    platform.example.com/baseline-type: "small"
+    platform.example.com/managed-by: "project-as-code"
+spec:
+  hard:
+    requests.cpu: "1"
+    requests.memory: "2Gi"
+    limits.cpu: "2"
+    limits.memory: "4Gi"
+    requests.storage: "5Gi"
+    persistentvolumeclaims: "2"
+    pods: "10"
+    services: "5"
+    secrets: "5"
+    configmaps: "10"

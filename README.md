@@ -1,88 +1,100 @@
 # Project Baselines Repository
 
-Ce repository contient les **baselines Kubernetes** pour les projets créés via Project-as-Code.
+Ce repository contient les **baselines Kubernetes standardisées** pour Project-as-Code.
 
-## 🏗️ Architecture Enterprise (repos séparés)
+## 🏗️ Architecture Enterprise (Baselines réutilisables)
 
-**`project-baselines`** (ici) = Standards plateforme  
-**`project-manifests`** (séparé) = Déclarations projets XProjectCluster
+**Principe :** Les projets sont des instances, les baselines sont des produits.
 
-Recommandation expert : Séparation des responsabilités avec gouvernance CODEOWNERS.
+- ❌ **Pas de baseline par projet**
+- ✅ **Baselines par type réutilisables** 
+- ✅ **Crossplane pointe vers le bon type**
+- ✅ **Une seule PR par projet (XProjectCluster)**
 
 ## 📁 Structure
 
 ```
 project-baselines/
-├── environments/           # Baselines Kubernetes par projet
-│   └── {environment}/
-│       └── {project}/
-│           ├── resourcequota.yaml
-│           ├── rbac.yaml
-│           └── kustomization.yaml
-├── .github/
-│   ├── ISSUE_TEMPLATE/     # Templates pour demandes
-│   └── workflows/          # Automation cross-repository
+├── baselines/
+│   ├── small/              # Projets développement/test
+│   │   ├── resourcequota.yaml    # 1 CPU, 2Gi RAM, 5Gi storage
+│   │   ├── limitrange.yaml       # Limites containers
+│   │   ├── rbac.yaml             # Permissions développeur
+│   │   ├── networkpolicy.yaml    # Réseau basic
+│   │   └── kustomization.yaml
+│   ├── standard/           # Projets production light
+│   │   ├── resourcequota.yaml    # 4 CPU, 8Gi RAM, 20Gi storage
+│   │   ├── limitrange.yaml
+│   │   ├── rbac.yaml
+│   │   ├── networkpolicy.yaml
+│   │   └── kustomization.yaml
+│   ├── large/              # Projets critiques
+│   │   └── ...
+│   └── restricted/         # Projets sécurisés/compliance
+│       └── ...
 └── README.md
 ```
 
-## 🔄 Workflow Enterprise (Cross-Repository)
+## 🔄 Workflow Enterprise
 
-### 1. Demande développeur
-**Option A - Workflow manuel** (pour tester):
-1. Aller sur l'onglet "Actions" du repository GitHub  
-2. Sélectionner "🚀 Scaffold New Project"
-3. Renseigner : nom projet, équipe, environnement
+### 1. Tech Lead crée projet
+```yaml
+apiVersion: platform.example.com/v1
+kind: XProjectCluster
+metadata:
+  name: ecommerce-prod
+spec:
+  parameters:
+    projectName: ecommerce
+    teamName: backend-team
+    environment: prod
+    projectType: standard    # ← Sélectionne le baseline
+```
 
-**Option B - Issue template** (workflow complet):
-1. Créer une issue avec template "🚀 Demande de nouveau projet"
-2. Admin valide et lance le workflow
+### 2. Validation et merge
+- **Tech Lead/EM** valide la PR XProjectCluster
+- **Une seule validation** par projet
 
-### 2. Génération automatique (2 PRs)
-
-Le workflow GitHub Actions crée **2 Pull Requests** séparées :
-
-**PR 1 - project-baselines** (validée par @platform-team):
-- Baseline `environments/{env}/{project}/`
-- ResourceQuota avec limites standard  
-- RBAC (ServiceAccount + Role + RoleBinding)
-
-**PR 2 - project-manifests** (validée par équipe + @platform-team):
-- Manifeste XProjectCluster `{env}/{project}.yaml`
-- Configuration Crossplane pointant vers project-baselines
-
-### 3. Validation et déploiement
-
-1. **Review séparé** selon CODEOWNERS
-2. **Merge des 2 PRs** par les validateurs appropriés
-3. **ArgoCD sync automatique** :
-   - XProjectCluster → Crossplane crée namespace + ArgoCD app
-   - Baselines synchronisées depuis project-baselines
+### 3. Déploiement automatique
+1. **ArgoCD** sync → Applique XProjectCluster
+2. **Crossplane** → Crée namespace + ArgoCD Application  
+3. **Application ArgoCD** pointe vers `baselines/standard/`
+4. **ArgoCD sync baseline** → Applique ResourceQuota, RBAC, NetPol
 
 ## ⚖️ Gouvernance
 
-**Séparation des responsabilités** :
-- **Équipes produit** : Déclarent leurs projets (XProjectCluster)
-- **Équipe plateforme** : Contrôle les standards (baselines)
+**Baselines (validées par Platform Team) :**
+- Auditées et sécurisées
+- Rarement modifiées
+- Réutilisées des centaines de fois
 
-**RBAC GitOps** :
-- project-baselines : @platform-team uniquement
-- project-manifests : équipes + @platform-team (CODEOWNERS)
+**Projets (validés par Tech Leads) :**
+- Déclaration d'intention
+- Sélection du type approprié
+- Validation business/technique
 
-## 🎯 ArgoCD Structure
+## 🎯 Types de baseline
 
-**ApplicationSet par repository** :
-- App "project-manifests-sync" → Lit les XProjectCluster
-- App "baseline-sync" → Applique les baselines
-- Apps générées par Crossplane → Sync baseline spécifique
+| Type | Usage | CPU | Memory | Storage | Pods |
+|------|-------|-----|--------|---------|------|
+| **small** | Dev/Test | 1 CPU | 2Gi | 5Gi | 10 |
+| **standard** | Prod Light | 4 CPU | 8Gi | 20Gi | 30 |
+| **large** | Critique | 8+ CPU | 16+ Gi | 50+ Gi | 50+ |
+| **restricted** | Compliance | Custom + Security policies | - | - |
 
-## 🚀 Évolution Backstage  
+## ✅ Avantages Architecture
 
-Cette architecture est optimale pour Backstage :
-- Plugin scaffold dans project-manifests
-- Templates contrôlés plateforme 
-- Ownership clair par repository
-- Workflow de validation intégré
+- ✅ **UNE SEULE PR** par projet
+- ✅ **Pas de scaffolding complexe**
+- ✅ **Baselines auditées et standardisées**
+- ✅ **Scaling optimal** (réutilisation)
+- ✅ **GitOps pur** (reconstruction depuis Git)
+- ✅ **Gouvernance claire** (Platform vs Projects)
 
-## 📋 Exemple
+## 🚀 Migration
 
-Projet `demo-dev` disponible pour test du système complet.
+Cette architecture **remplace définitivement** :
+- ❌ Scaffolding par projet GitHub Actions
+- ❌ Génération dynamique de baselines
+- ❌ Double validation (PR projet + PR baseline)
+- ❌ Complexité workflow
