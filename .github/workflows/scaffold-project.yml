@@ -1,0 +1,248 @@
+name: 🚀 Scaffold New Project
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_name:
+        description: 'Nom du projet'
+        required: true
+        type: string
+      team_name:
+        description: 'Équipe propriétaire'
+        required: true
+        type: string
+      environment:
+        description: 'Environnement'
+        required: true
+        type: choice
+        options:
+          - dev
+          - recette
+          - preprod
+          - prod
+      description:
+        description: 'Description du projet (optionnel)'
+        required: false
+        type: string
+
+env:
+  PROJECT_MANIFESTS_REPO: "younesbami/project-manifests"
+
+jobs:
+  scaffold-baseline:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup variables
+      run: |
+        echo "PROJECT_NAME=${{ github.event.inputs.project_name }}" >> $GITHUB_ENV
+        echo "TEAM_NAME=${{ github.event.inputs.team_name }}" >> $GITHUB_ENV
+        echo "ENVIRONMENT=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+        echo "DESCRIPTION=${{ github.event.inputs.description }}" >> $GITHUB_ENV
+        
+    - name: Generate project baseline
+      run: |
+        echo "🚀 Création du projet: $PROJECT_NAME-$ENVIRONMENT pour l'équipe $TEAM_NAME"
+        
+        # Créer la structure baseline
+        mkdir -p "environments/$ENVIRONMENT/$PROJECT_NAME"
+        
+        # Générer ResourceQuota
+        cat > "environments/$ENVIRONMENT/$PROJECT_NAME/resourcequota.yaml" <<EOF
+        apiVersion: v1
+        kind: ResourceQuota
+        metadata:
+          name: baseline-quota
+          namespace: $PROJECT_NAME-$ENVIRONMENT
+          labels:
+            platform.example.com/project: "$PROJECT_NAME"
+            platform.example.com/environment: "$ENVIRONMENT"
+            platform.example.com/team: "$TEAM_NAME"
+            platform.example.com/managed-by: "project-as-code"
+        spec:
+          hard:
+            requests.cpu: "2"
+            requests.memory: "4Gi"
+            limits.cpu: "4"
+            limits.memory: "8Gi"
+            requests.storage: "10Gi"
+            persistentvolumeclaims: "5"
+            pods: "20"
+            services: "10"
+            secrets: "10"
+            configmaps: "20"
+        EOF
+        
+        # Générer RBAC
+        cat > "environments/$ENVIRONMENT/$PROJECT_NAME/rbac.yaml" <<EOF
+        apiVersion: v1
+        kind: ServiceAccount
+        metadata:
+          name: $PROJECT_NAME-sa
+          namespace: $PROJECT_NAME-$ENVIRONMENT
+          labels:
+            platform.example.com/project: "$PROJECT_NAME"
+            platform.example.com/environment: "$ENVIRONMENT"
+            platform.example.com/team: "$TEAM_NAME"
+            platform.example.com/managed-by: "project-as-code"
+        ---
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: Role
+        metadata:
+          name: $PROJECT_NAME-developer
+          namespace: $PROJECT_NAME-$ENVIRONMENT
+          labels:
+            platform.example.com/project: "$PROJECT_NAME"
+            platform.example.com/environment: "$ENVIRONMENT"
+            platform.example.com/team: "$TEAM_NAME"
+            platform.example.com/managed-by: "project-as-code"
+        rules:
+          - apiGroups: [""]
+            resources: ["pods", "services", "configmaps", "secrets"]
+            verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+          - apiGroups: ["apps"]
+            resources: ["deployments", "replicasets"]
+            verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+        ---
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: RoleBinding
+        metadata:
+          name: $PROJECT_NAME-developers
+          namespace: $PROJECT_NAME-$ENVIRONMENT
+          labels:
+            platform.example.com/project: "$PROJECT_NAME"
+            platform.example.com/environment: "$ENVIRONMENT"
+            platform.example.com/team: "$TEAM_NAME"
+            platform.example.com/managed-by: "project-as-code"
+        subjects:
+          - kind: ServiceAccount
+            name: $PROJECT_NAME-sa
+            namespace: $PROJECT_NAME-$ENVIRONMENT
+        roleRef:
+          kind: Role
+          name: $PROJECT_NAME-developer
+          apiGroup: rbac.authorization.k8s.io
+        EOF
+        
+        # Note: Le manifeste XProjectCluster sera créé dans project-manifests
+        # par un job séparé pour respecter la séparation des responsabilités
+        
+        echo "✅ Baseline générée pour $PROJECT_NAME-$ENVIRONMENT"
+        
+    - name: Create PR for baseline  
+      run: |
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "actions@github.com"
+        
+        # Créer une branche pour la PR
+        BRANCH_NAME="add-baseline-$PROJECT_NAME-$ENVIRONMENT"
+        git checkout -b "$BRANCH_NAME"
+        
+        git add .
+        git commit -m "Add project baseline: $PROJECT_NAME-$ENVIRONMENT
+
+        - Équipe: $TEAM_NAME
+        - Environnement: $ENVIRONMENT  
+        - ResourceQuota avec limites standard
+        - RBAC pour développeurs
+        
+        Description: $DESCRIPTION
+        
+        /cc @platform-team"
+        
+        git push origin "$BRANCH_NAME"
+        
+        echo "✅ Branche créée pour baseline: $BRANCH_NAME"
+        echo "BASELINE_BRANCH=$BRANCH_NAME" >> $GITHUB_OUTPUT
+      id: baseline_pr
+
+  scaffold-manifest:
+    runs-on: ubuntu-latest  
+    needs: scaffold-baseline
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout project-manifests repository
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ env.PROJECT_MANIFESTS_REPO }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        path: project-manifests
+        
+    - name: Generate XProjectCluster manifest
+      run: |
+        cd project-manifests
+        
+        PROJECT_NAME="${{ github.event.inputs.project_name }}"
+        TEAM_NAME="${{ github.event.inputs.team_name }}"
+        ENVIRONMENT="${{ github.event.inputs.environment }}"
+        
+        # Créer le dossier d'environnement si nécessaire
+        mkdir -p "$ENVIRONMENT"
+        
+        # Générer le manifeste XProjectCluster
+        cat > "$ENVIRONMENT/$PROJECT_NAME.yaml" <<EOF
+        apiVersion: platform.example.com/v1
+        kind: XProjectCluster
+        metadata:
+          name: $PROJECT_NAME-$ENVIRONMENT
+          labels:
+            platform.example.com/project: $PROJECT_NAME
+            platform.example.com/environment: $ENVIRONMENT
+            platform.example.com/team: $TEAM_NAME
+        spec:
+          crossplane:
+            compositionRef:
+              name: xprojectcluster-v2
+          parameters:
+            projectName: $PROJECT_NAME
+            teamName: $TEAM_NAME
+            environment: $ENVIRONMENT
+            argocd:
+              repoURL: https://github.com/younesbami/project-baselines
+              targetRevision: main
+        EOF
+        
+        echo "✅ Manifeste XProjectCluster généré: $ENVIRONMENT/$PROJECT_NAME.yaml"
+        
+    - name: Create PR for project manifest
+      run: |
+        cd project-manifests
+        
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "actions@github.com"
+        
+        PROJECT_NAME="${{ github.event.inputs.project_name }}"
+        ENVIRONMENT="${{ github.event.inputs.environment }}"
+        TEAM_NAME="${{ github.event.inputs.team_name }}"
+        DESCRIPTION="${{ github.event.inputs.description }}"
+        
+        # Créer une branche pour la PR
+        BRANCH_NAME="add-project-$PROJECT_NAME-$ENVIRONMENT"
+        git checkout -b "$BRANCH_NAME"
+        
+        git add .
+        git commit -m "Add project manifest: $PROJECT_NAME-$ENVIRONMENT
+
+        - Projet: $PROJECT_NAME
+        - Équipe: $TEAM_NAME  
+        - Environnement: $ENVIRONMENT
+        - XProjectCluster généré pour Crossplane
+        
+        Description: $DESCRIPTION
+        
+        /cc @$TEAM_NAME @platform-team"
+        
+        git push origin "$BRANCH_NAME"
+        
+        echo "✅ Branche créée pour manifeste: $BRANCH_NAME"
+        echo "🎯 Prochaines étapes:"
+        echo "   1. Review et merge des 2 PRs (baseline + manifest)"  
+        echo "   2. ArgoCD synchronisera automatiquement"
+        echo "   3. Crossplane créera le namespace + baseline"
