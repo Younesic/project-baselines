@@ -139,8 +139,10 @@ jobs:
         git config --global user.name "GitHub Actions Bot"
         git config --global user.email "actions@github.com"
         
-        # Créer une branche pour la PR
-        BRANCH_NAME="add-baseline-$PROJECT_NAME-$ENVIRONMENT"
+        # Créer une branche unique avec timestamp
+        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+        BRANCH_NAME="add-baseline-$PROJECT_NAME-$ENVIRONMENT-$TIMESTAMP"
+        
         git checkout -b "$BRANCH_NAME"
         
         git add .
@@ -153,9 +155,11 @@ jobs:
         
         Description: $DESCRIPTION
         
+        Generated at: $(date)
         /cc @platform-team"
         
-        git push origin "$BRANCH_NAME"
+        # Force push pour éviter les conflits
+        git push origin "$BRANCH_NAME" --force
         
         echo "✅ Branche créée pour baseline: $BRANCH_NAME"
         echo "BASELINE_BRANCH=$BRANCH_NAME" >> $GITHUB_OUTPUT
