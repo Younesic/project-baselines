@@ -13,8 +13,7 @@ spec:
       defaultRequest:
         cpu: "100m"
         memory: "128Mi"
-      type: Container
-    - max:
+      max:
         cpu: "1"
         memory: "1Gi"
       min:
