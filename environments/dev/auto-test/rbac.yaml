@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: auto-test-sa
+  namespace: auto-test-dev
+  labels:
+    platform.example.com/project: "auto-test"
+    platform.example.com/environment: "dev"
+    platform.example.com/team: "platform"
+    platform.example.com/managed-by: "project-as-code"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: auto-test-developer
+  namespace: auto-test-dev
+  labels:
+    platform.example.com/project: "auto-test"
+    platform.example.com/environment: "dev"
+    platform.example.com/team: "platform"
+    platform.example.com/managed-by: "project-as-code"
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps", "secrets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: auto-test-developers
+  namespace: auto-test-dev
+  labels:
+    platform.example.com/project: "auto-test"
+    platform.example.com/environment: "dev"
+    platform.example.com/team: "platform"
+    platform.example.com/managed-by: "project-as-code"
+subjects:
+  - kind: ServiceAccount
+    name: auto-test-sa
+    namespace: auto-test-dev
+roleRef:
+  kind: Role
+  name: auto-test-developer
+  apiGroup: rbac.authorization.k8s.io
