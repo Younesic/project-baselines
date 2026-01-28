@@ -188,25 +188,9 @@ jobs:
         git push origin "$BRANCH_NAME" --force
         
         echo "✅ Branche créée pour baseline: $BRANCH_NAME"
-        echo "BASELINE_BRANCH=$BRANCH_NAME" >> $GITHUB_OUTPUT
-
-    - name: Create Pull Request with GitHub CLI
-      run: |
-        # Vérifier que la variable est bien définie
-        echo "DEBUG: BASELINE_BRANCH from output = ${{ steps.baseline_pr.outputs.BASELINE_BRANCH }}"
         
-        # Récupérer le nom de branche depuis l'output du step précédent
-        BRANCH_NAME="${{ steps.baseline_pr.outputs.BASELINE_BRANCH }}"
-        
-        if [ -z "$BRANCH_NAME" ]; then
-          echo "❌ Erreur: BRANCH_NAME est vide"
-          echo "Available outputs: ${{ steps.baseline_pr.outputs }}"
-          exit 1
-        fi
-        
-        echo "🔧 Création PR pour la branche: $BRANCH_NAME"
-        
-        # Créer la PR avec GitHub CLI (sans assignee pour éviter l'erreur)
+        # Créer la PR directement dans le même step
+        echo "🔧 Création de la Pull Request..."
         gh pr create \
           --title "🚀 Add project baseline: $PROJECT_NAME-$ENVIRONMENT" \
           --body "## 🏗️ Nouveau projet baseline
@@ -227,7 +211,7 @@ jobs:
 
         **Description:** $DESCRIPTION
 
-        /cc @platform-team" \
+        Généré automatiquement le $(date)" \
           --head "$BRANCH_NAME" \
           --base main \
           --label "baseline"
@@ -235,7 +219,6 @@ jobs:
         echo "✅ Pull Request créée pour la branche: $BRANCH_NAME"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      id: create_pr
 
   generate-manifest:
     runs-on: ubuntu-latest  
