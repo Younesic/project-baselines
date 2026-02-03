@@ -4,7 +4,8 @@ metadata:
   name: developer-sa
   labels:
     platform.example.com/baseline-type: small
-    platform.example.com/managed-by: project-as-code---
+    platform.example.com/managed-by: project-as-code
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -52,7 +53,8 @@ rules:
   verbs:
   - get
   - list
-  - create---
+  - create
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
