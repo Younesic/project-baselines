@@ -3,37 +3,68 @@ kind: ServiceAccount
 metadata:
   name: developer-sa
   labels:
-    platform.example.com/baseline-type: "standard"
-    platform.example.com/managed-by: "project-as-code"
----
+    platform.example.com/baseline-type: standard
+    platform.example.com/managed-by: project-as-code---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: developer
   labels:
-    platform.example.com/baseline-type: "standard"
-    platform.example.com/managed-by: "project-as-code"
+    platform.example.com/baseline-type: standard
+    platform.example.com/managed-by: project-as-code
 rules:
-  - apiGroups: [""]
-    resources: ["pods", "services", "configmaps", "secrets", "persistentvolumeclaims"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  - apiGroups: ["apps"]
-    resources: ["deployments", "replicasets", "daemonsets"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  - apiGroups: [""]
-    resources: ["pods/log", "pods/exec", "pods/portforward"]
-    verbs: ["get", "list", "create"]
----
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  - services
+  - configmaps
+  - secrets
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - replicasets
+  - daemonsets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ''
+  resources:
+  - pods/log
+  - pods/exec
+  - pods/portforward
+  verbs:
+  - get
+  - list
+  - create---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: developers
   labels:
-    platform.example.com/baseline-type: "standard"
-    platform.example.com/managed-by: "project-as-code"
+    platform.example.com/baseline-type: standard
+    platform.example.com/managed-by: project-as-code
 subjects:
-  - kind: ServiceAccount
-    name: developer-sa
+- kind: ServiceAccount
+  name: developer-sa
+- kind: Group
+  name: argocd-$(NAMESPACE)
 roleRef:
   kind: Role
   name: developer

@@ -1,12 +1,20 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 resources:
-  - resourcequota.yaml
-  - limitrange.yaml
-  - rbac.yaml
-  - networkpolicy.yaml
-
+- resourcequota.yaml
+- limitrange.yaml
+- rbac.yaml
+- networkpolicy.yaml
 commonLabels:
-  platform.example.com/baseline-type: "small"
-  platform.example.com/managed-by: "project-as-code"
+  platform.example.com/baseline-type: small
+  platform.example.com/managed-by: project-as-code
+configurations:
+- kustomizeconfig.yaml
+vars:
+- name: NAMESPACE
+  objref:
+    apiVersion: v1
+    kind: ServiceAccount
+    name: developer-sa
+  fieldref:
+    fieldpath: metadata.namespace
