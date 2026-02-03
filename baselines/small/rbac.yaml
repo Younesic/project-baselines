@@ -67,6 +67,8 @@ subjects:
   name: developer-sa
 - kind: Group
   name: argocd-$(NAMESPACE)
+- kind: Group
+  name: "-argocd-$(NAMESPACE)"
 roleRef:
   kind: Role
   name: developer
